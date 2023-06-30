@@ -1,0 +1,31 @@
+Package: MultiSpa
+Type: Package
+Title: Multisample spatial transcriptomic analysis
+Version: 0.1.0
+Author: Wentao Zhan
+Maintainer: Wentao Zhan <wzhan3@jhu.edu>
+Description: More about what it does (maybe more than one line)
+    Use four spaces when indenting paragraphs within the Description.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Imports: 
+    reticulate,
+    Seurat,
+    PRECAST,
+    tidyverse,
+    ggpubr,
+    reshape2,
+    scCustomize,
+    pheatmap,
+    cowplot,
+    SeuratWrappers,
+    Rmagic,
+    viridis,
+    phateR,
+    harmony,
+    scales,
+    stringr,
+    NICHES,
+    nichenetr
+RoxygenNote: 7.2.3
