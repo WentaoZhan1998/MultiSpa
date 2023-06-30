@@ -1,22 +1,37 @@
 # MultiSpa
+Multisample analysis for spatial transcriptomic (ST) data.
 
+The package involves multisample spatial transcriptomic integration. Together with bunch of steps identifying differentially expressed features among the groups. These features focus on the 
+
+## Read files
+Specify the read and save path, together with the files user want to read. 
 ```{r}
-source('/dcs05/hongkai/data/wzhan/Spatial_visium/pipeline.R')
-read_path = "/dcs05/hongkai/data/wzhan/Spatial_visium/Liver/data/"
-save_path = "/dcs05/hongkai/data/wzhan/Spatial_visium/Liver/"
+read_path = "./Spatial_visium/Liver/data/"
+save_path = "./Spatial_visium/Liver/"
 files = list.files(read_path)
-impute = T
+```
 
+## Create object list
+Create_obj_list creates an object list for PRECAST to integrate. Magic imputation is optional here controled by impute.
+```{r}
+impute = T
 obj_list = create_obj_list(read_path, files, impute = impute)
-## Create an object that has
-## assays 'count', 'PRE_CAST';
-## reductions 'PRECAST', 'position', 'umap', 'pca', 'harmony'(optional)
-## clusters 'cluster', 'seurat_clusters'(optional)
+```
+
+This chunk create seurat object in the following format:
+assays 'count', 'PRE_CAST'; 
+reductions 'PRECAST', 'position', 'umap', 'pca', 'harmony'(optional); 
+clusters 'cluster', 'seurat_clusters'(optional).
+```{r}
 seuInt = PRECAST_pipeline(obj_list, premin.spots = 0, premin.features = 0,
                           postmin.spots = 0, postmin.features = 0)
 seuInt = Create_sample(seuInt, files)
 saveRDS(seuInt, paste0(save_path, 'seuInt', ifelse(impute, '_impute', ''), '.rds'))
+```
 
+## Identify markers of interest
+The the user can identify the potential genes to work with according to the package NICHE.
+```{r}
 seuInt = readRDS(paste0(save_path,'seuInt.rds'))
 seuInt_imput = readRDS(paste0(save_path,'seuInt_impute.rds'))
 
@@ -26,12 +41,24 @@ markers = unlist(lr_load("fantom5",NULL,'human',variable_genes))
 names(markers) = NULL
 markers = unique(markers)
 saveRDS(list(markers = markers, pairs = pairs), paste0(save_path, 'markers_shared.rds'))
+```
 
+## Generate neighboring expression matrix
+```{r}
 Gene_mat_generate(seuInt, markers, k=20,
                   save.path = save_path, name = "neighbor_gene_NICHES_k20_shared")
 Gene_mat_generate(seuInt_imput, markers, k=20,
                   save.path = save_path, name = "neighbor_gene_imput_NICHES_k20_shared")
+```
 
+## Generate neighboring cell proportion matrix
+```{r}
+prop_df = neighbor_mat_gen(seuInt, k = 20, save.path = save_path,
+                           name = paste0('neighbor_cluster_k20', ifelse(impute, '_impute', '')))$prop_df
+```
+
+## Load data for feature selection.
+```{r}
 impute = F
 seuInt = readRDS(paste0(save_path,'seuInt', ifelse(impute, '_impute', ''), '.rds'))
 neighbor_mat = readRDS(paste0(save_path,'neighbor_gene',
@@ -41,11 +68,6 @@ neighbor_mat_list = readRDS(paste0(save_path,'neighbor_gene',
 markers = readRDS(paste0(save_path, 'markers_shared.rds'))$markers
 pairs = readRDS(paste0(save_path, 'markers_shared.rds'))$pairs
 expr_mat = t(GetAssayData(seuInt, slot = "data", assay = 'count')[markers, ])
-colnames(expr_mat) = toupper(colnames(expr_mat))
-
-##### Neighbor construction #####
-prop_df = neighbor_mat_gen(seuInt, k = 20, save.path = save_path,
-                           name = paste0('neighbor_cluster_k20', ifelse(impute, '_impute', '')))$prop_df
 prop_df = readRDS(paste0(save_path, 'neighbor_cluster_k20',
                          ifelse(impute, '_impute', ''), '.rds'))
 n_cluster = length(unique(prop_df$cluster))
