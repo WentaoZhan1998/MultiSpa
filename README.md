@@ -1,6 +1,7 @@
-# MultiSpa
-Multisample analysis for spatial transcriptomic (ST) data.
+# MultiSpa 
+Multisample analysis for spatial transcriptomic (ST) data.< img src="Figures/imgfile.png" align="right" width="160px"/>
 
+## Overview
 The package involves multisample spatial transcriptomic integration. Together with bunch of steps identifying differentially expressed features among the groups. These features focus on the 
 
 ## Read files
@@ -28,6 +29,7 @@ seuInt = PRECAST_pipeline(obj_list, k = 8, premin.spots = 0, premin.features = 0
 seuInt = Create_sample(seuInt, files)
 saveRDS(seuInt, paste0(save_path, 'seuInt', ifelse(impute, '_impute', ''), '.rds'))
 ```
+<img src="Figures/Precast.png" alt="Fig1" style="zoom:40%;" /> <img src="Figures/gene.png" alt="Fig2" style="zoom:40%;" />
 
 ## Identify markers of interest
 The the user can identify the potential genes to work with. Here we study the markers as an union of all the potential ligand-receptor pairs among the shared highly-variable genes between the non-imputed integrated object and imputed integrated object. The pairs are identified by the R package NICHE. Otherwise user can specify the markers by them self. Note that the running time and space usage increase linearly with the number of markers.
@@ -128,3 +130,4 @@ if(nrow(p_top) > 0){
   }
 }
 ```
+<img src="Figures/gene-gene.png" alt="Fig 3" style="zoom:50%;" />
