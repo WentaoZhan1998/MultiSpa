@@ -30,8 +30,8 @@ seuInt = Create_sample(seuInt, files)
 saveRDS(seuInt, paste0(save_path, 'seuInt', ifelse(impute, '_impute', ''), '.rds'))
 ```
 <p float="left">
-  <img src="Figures/Precast.png" alt="Fig1" style="zoom:40%;" />
-  <img src="Figures/gene.png" alt="Fig2" style="zoom:40%;" /> 
+  <img src="Figures/Precast.png" width="100" />
+  <img src="Figures/gene.png" width="100" />
 </p>
 
 ## Identify markers of interest
