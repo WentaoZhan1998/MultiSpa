@@ -30,8 +30,8 @@ seuInt = Create_sample(seuInt, files)
 saveRDS(seuInt, paste0(save_path, 'seuInt', ifelse(impute, '_impute', ''), '.rds'))
 ```
 <p float="center">
-  <img src="Figures/Precast.png" width="425" />
-  <img src="Figures/gene.png" width="425" />
+  <img src="Figures/Precast.png" width="300" />
+  <img src="Figures/gene.png" width="300" />
 </p>
 
 
@@ -134,4 +134,6 @@ if(nrow(p_top) > 0){
   }
 }
 ```
-<img src="Figures/gene-gene.png" alt="Fig 3" style="zoom:50%;" />
+<p float="center">
+  <img src="Figures/gene-gene.png" width="400" />
+</p>
