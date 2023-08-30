@@ -29,10 +29,7 @@ seuInt = PRECAST_pipeline(obj_list, k = 8, premin.spots = 0, premin.features = 0
 seuInt = Create_sample(seuInt, files)
 saveRDS(seuInt, paste0(save_path, 'seuInt', ifelse(impute, '_impute', ''), '.rds'))
 ```
-<p float="left">
-  <img src="Figures/Precast.png" width="100" />
-  <img src="Figures/gene.png" width="100" />
-</p>
+
 ![alt-text-1](iFigures/Precast.png "Figure 1") ![alt-text-2](Figures/gene.png "Figure-2")
 
 ## Identify markers of interest
