@@ -29,8 +29,11 @@ seuInt = PRECAST_pipeline(obj_list, k = 8, premin.spots = 0, premin.features = 0
 seuInt = Create_sample(seuInt, files)
 saveRDS(seuInt, paste0(save_path, 'seuInt', ifelse(impute, '_impute', ''), '.rds'))
 ```
+<p float="center">
+  <img src="Figures/Precast.png" width="425" />
+  <img src="Figures/gene.png" width="425" />
+</p>
 
-![alt-text-1](iFigures/Precast.png "Figure 1") ![alt-text-2](Figures/gene.png "Figure-2")
 
 ## Identify markers of interest
 The the user can identify the potential genes to work with. Here we study the markers as an union of all the potential ligand-receptor pairs among the shared highly-variable genes between the non-imputed integrated object and imputed integrated object. The pairs are identified by the R package NICHE. Otherwise user can specify the markers by them self. Note that the running time and space usage increase linearly with the number of markers.
