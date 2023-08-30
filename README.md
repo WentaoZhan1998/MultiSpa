@@ -23,14 +23,14 @@ assays 'count', 'PRE_CAST';
 reductions 'PRECAST', 'position', 'umap', 'pca', 'harmony'(optional); 
 clusters 'cluster', 'seurat_clusters'(optional).
 ```{r}
-seuInt = PRECAST_pipeline(obj_list, premin.spots = 0, premin.features = 0,
+seuInt = PRECAST_pipeline(obj_list, k = 8, premin.spots = 0, premin.features = 0,
                           postmin.spots = 0, postmin.features = 0)
 seuInt = Create_sample(seuInt, files)
 saveRDS(seuInt, paste0(save_path, 'seuInt', ifelse(impute, '_impute', ''), '.rds'))
 ```
 
 ## Identify markers of interest
-The the user can identify the potential genes to work with according to the package NICHE.
+The the user can identify the potential genes to work with. Here we study the markers as an union of all the potential ligand-receptor pairs among the shared highly-variable genes between the non-imputed integrated object and imputed integrated object. The pairs are identified by the R package NICHE. Otherwise user can specify the markers by them self. Note that the running time and space usage increase linearly with the number of markers.
 ```{r}
 seuInt = readRDS(paste0(save_path,'seuInt.rds'))
 seuInt_imput = readRDS(paste0(save_path,'seuInt_impute.rds'))
@@ -44,6 +44,7 @@ saveRDS(list(markers = markers, pairs = pairs), paste0(save_path, 'markers_share
 ```
 
 ## Generate neighboring expression matrix
+Use the 'Gene_mat_generate' function to generate and save teh neighboring expression matrix. Each row of the matrix is the average expressions of the markers in the k-nearest neighborhood. 'Name' indicates the filename you want to use for saving the matrix. In addition, a length-$k$ list will be saved in 'name_list.rds', where $k$ is the number of clusters created by PRECAST. Each element in the list is the average expressions of the markers within a certain cluster.
 ```{r}
 Gene_mat_generate(seuInt, markers, k=20,
                   save.path = save_path, name = "neighbor_gene_NICHES_k20_shared")
@@ -52,26 +53,29 @@ Gene_mat_generate(seuInt_imput, markers, k=20,
 ```
 
 ## Generate neighboring cell proportion matrix
+Use the 'Gene_mat_generate' function to generate and save the neighboring cell proportion matrix. Each row of the matrix is the proportions of cells from different clusters. Name' indicates the filename you want to use for saving the matrix.
 ```{r}
 prop_df = neighbor_mat_gen(seuInt, k = 20, save.path = save_path,
-                           name = paste0('neighbor_cluster_k20', ifelse(impute, '_impute', '')))$prop_df
+                           name = paste0('neighbor_cluster_k20'))$prop_df
 ```
 
-## Load data for feature selection.
+## Load data for feature selection
+Load all the data needed for feature selection, including gene expression, neighboring gene expression, and neighboring cell proportion.
 ```{r}
 impute = F
-seuInt = readRDS(paste0(save_path,'seuInt', ifelse(impute, '_impute', ''), '.rds'))
-neighbor_mat = readRDS(paste0(save_path,'neighbor_gene',
-                              ifelse(impute, '_imput', ''), '_NICHES_k20_shared.rds'))
-neighbor_mat_list = readRDS(paste0(save_path,'neighbor_gene',
-                                   ifelse(impute, '_imput', ''), '_NICHES_k20_shared_list.rds'))
+seuInt = readRDS(paste0(save_path,'seuInt', '.rds'))
+neighbor_mat = readRDS(paste0(save_path,'neighbor_gene', '_NICHES_k20_shared.rds'))
+neighbor_mat_list = readRDS(paste0(save_path,'neighbor_gene', '_NICHES_k20_shared_list.rds'))
 markers = readRDS(paste0(save_path, 'markers_shared.rds'))$markers
 pairs = readRDS(paste0(save_path, 'markers_shared.rds'))$pairs
 expr_mat = t(GetAssayData(seuInt, slot = "data", assay = 'count')[markers, ])
-prop_df = readRDS(paste0(save_path, 'neighbor_cluster_k20',
-                         ifelse(impute, '_impute', ''), '.rds'))
+prop_df = readRDS(paste0(save_path, 'neighbor_cluster_k20', '.rds'))
 n_cluster = length(unique(prop_df$cluster))
+```
 
+## Add metadata with grouped information
+Compose sampletable including the sample-level metadata. The table should contain a column 'sample' for the sample names, a column 'batch' for the batch id, along with any information might be needed for grouped analysis. All the metadata should be added to the seurat object by left_join.
+```{r}
 sampletable = data.frame(batch = 1:length(files), sample = files)
 sampletable$label = rep(c('L', "N", "T"), 4)
 sampletable$label_num = rep(c(1, 0, 2), 4)
@@ -79,73 +83,48 @@ sampletable$batch = rep(1:4, each = 3)
 seuInt$label = left_join(data.frame(sample = seuInt$sample), sampletable, by = 'sample')$label
 seuInt$label_num = left_join(data.frame(sample = seuInt$sample), sampletable, by = 'sample')$label_num
 seuInt$batch = left_join(data.frame(sample = seuInt$sample), sampletable, by = 'sample')$batch
+```
 
-##### Top features selection #####
-zero_rm = F
+## Top features selection
+For feature selection, gene expression, neighboring gene expression, neighboring cell proportion should all be input in order to go through features that potentially have the power to distinguish groups. Statistical tests are conducted on the following features:
+gene expression vs neighboring gene expression (restricted in a specific cell cluster),\\ 
+gene expression vs neighboring cell celuster proportion.\\ 
+If type is set to be 'grouped', then one is testing the features' differences between two groups and t-test is used for this purpose. For example, the first chunk is comparing between tumor slices and normal slices. The name of label, together with the labels within each group should be specified.\\
+If type is set to be 'continuous', then one is testing the features' changes along a continuous covariate, and deviance test is used for this purpose. For example, the second chunk is testing against the distance to the tumor. The name of label should be specified, and the label must be numeric.
+```{r}
 p_top = Feature_selection(neighbor_mat, neighbor_mat_list, prop_df, markers = colnames(neighbor_mat),
-                          interaction_gen = interaction_gen_group, zero_rm = zero_rm ,
+                          type = 'grouped', zero_rm = F,
                           seuInt = seuInt, expr_mat = expr_mat,
                           sampletable = sampletable,
+                          group = 'sample'
                           group1 = c('HCC-1N', 'HCC-2N', 'HCC-3N', 'HCC-4N'),
                           group2 = c('HCC-1T', 'HCC-2T', 'HCC-3T', 'HCC-4T'))
 p_top = arrange(p_top, p.adj)
 head(p_top)
-saveRDS(p_top, paste0(save_path, 'p_top_raw',
-                      ifelse(impute, '_impute', ''),
-                      ifelse(zero_rm, '_zerorm', '_zerokept'),
-                      '_k20_shared.rds'))
+saveRDS(p_top, paste0(save_path, 'p_top_raw', '_k20_shared.rds'))
+```
 
+```{r}
 p_top = Feature_selection(neighbor_mat, neighbor_mat_list, prop_df, markers = colnames(neighbor_mat),
-                          interaction_gen = interaction_gen_time, zero_rm = zero_rm ,
+                          type = 'continuous', zero_rm = F,
                           seuInt = seuInt, expr_mat = expr_mat,
                           sampletable = sampletable,
                           group = 'label_num')
 p_top = arrange(p_top, p.adj)
 head(p_top)
-saveRDS(p_top, paste0(save_path, 'p_time_raw',
-                      ifelse(impute, '_impute', ''), '_zerokept_k20_shared.rds'))
+saveRDS(p_top, paste0(save_path, 'p_time_raw', '_zerokept_k20_shared.rds'))
+```
 
-##### Top features plots #####
-p_top = readRDS(paste0(save_path, 'p_time_raw',
-                       ifelse(impute, '_impute', ''),
-                       ifelse(zero_rm, '_zerorm', '_zerokept'),
-                       '_k20_shared.rds'))
-for(i in 1:length(pairs[[1]])){
-  print(i)
-  id1 = p_top[,1] == pairs[[1]][i]
-  id2 = p_top[,2] == pairs[[2]][i]
-  #temp = p_top[id1&id2,] %>% filter(cluster=='all') %>% filter(neighbor_cluster == 'all')
-  temp = p_top[id1&id2,]
-  temp = temp %>% filter(cluster == 'all') %>% filter(neighbor_cluster == 'all')
-  if(nrow(temp) > 0){
-    for(j in 1:nrow(temp)){
-      plot_gene_by_gene(pairs[[1]][i], pairs[[2]][i], temp[j,5], temp[j,6], p_adj = temp$p[j],
-                        expr_mat, neighbor_mat, neighbor_mat_list,
-                        cell_by = seuInt$label, smooth_by = seuInt$label, facet_by = seuInt$batch, zero_rm = zero_rm)
-    }
+## Top features plots
+The package provides visualization for the features' differential expression. For example, here we are plotting the co-expression of the top 10 gene pairs detected by the package.
+```{r}
+p_top = readRDS(paste0(save_path, 'p_time_raw', '_k20_shared.rds'))
+if(nrow(p_top) > 0){
+  for(j in 1:10){
+    plot_gene_by_gene(p_top$gene[j], p_top$neighbor_gene[j], 
+                      p_top$cluster[j], p_top$neighbor_cluster[j], p_adj = p_top$p[j],
+                      expr_mat, neighbor_mat, neighbor_mat_list,
+                      cell_by = seuInt$label, smooth_by = seuInt$label, facet_by = seuInt$batch, zero_rm = F)
   }
 }
-
-for(sample in unique(seuInt$sample)){
-  #for(sample in c('SL1-A1', 'SL4-D1')){
-  test = Load10X_Spatial(
-    paste0(read_path, sample),
-    filename = "filtered_feature_bc_matrix.h5",
-    assay = "Spatial"
-  )
-  test$sample = rep(sample, ncol(test))
-  test = subset(test, subset = nCount_Spatial > quantile(test@meta.data$nCount_Spatial, 0.05))
-  test = subset(test, subset = nFeature_Spatial > quantile(test@meta.data$nFeature_Spatial, 0.05))
-  for(gene in c('VWF', 'SIRPA')){
-    print(gene)
-    SpatialFeaturePlot(test, features = gene, pt.size.factor = 2)
-    ggsave(paste0(save_path, 'figures/', sample, '_', gene, '.png'))
-  }
-}
-
-process_fun = function(x){
-  lm(neighbor_gene ~ gene, data = x)$coef[2]
-}
-
-res = sapply(split(df_plt, df_plt$group_smooth), process_fun)
 ```
