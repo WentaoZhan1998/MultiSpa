@@ -1,5 +1,5 @@
 # MultiSpa 
-Multisample analysis for spatial transcriptomic (ST) data.< img src="Figures/imgfile.png" align="right" width="160px"/>
+Multisample analysis for spatial transcriptomic (ST) data.< img src="Figures/image.png" align="right" width="160px"/>
 
 ## Overview
 The package involves multisample spatial transcriptomic integration. Together with bunch of steps identifying differentially expressed features among the groups. These features focus on the 
