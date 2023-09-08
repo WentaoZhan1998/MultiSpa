@@ -49,6 +49,12 @@ markers = unique(markers)
 saveRDS(list(markers = markers, pairs = pairs), paste0(save_path, 'markers_shared.rds'))
 ```
 
+## Generate pseudobulk expression matrix
+Generate the pseudobulk expression matrix for the gene expressions in each sample. Bulks are segmented by the default 'ident' in the seurat object, i.e. cluster label.
+```{r}
+pseudobulk = pseudobulk_gen(seuInt, markers)
+```
+
 ## Generate neighboring expression matrix
 Use the 'Gene_mat_generate' function to generate and save teh neighboring expression matrix. Each row of the matrix is the average expressions of the markers in the k-nearest neighborhood. 'Name' indicates the filename you want to use for saving the matrix. In addition, a length-$k$ list will be saved in 'name_list.rds', where $k$ is the number of clusters created by PRECAST. Each element in the list is the average expressions of the markers within a certain cluster.
 ```{r}
@@ -63,6 +69,12 @@ Use the 'Gene_mat_generate' function to generate and save the neighboring cell p
 ```{r}
 prop_df = neighbor_mat_gen(seuInt, k = 20, save.path = save_path,
                            name = paste0('neighbor_cluster_k20'))$prop_df
+```
+
+## Generate local gene interaction matrix
+For each cell, find the nearest $k$ paired cells and calculate the interaction between gene1 in the cell and gene2 in the paired cells.
+```{r}
+Pair_mat_generate(seuInt, markers, k = 1, save.path = save_path, name = 'pair_k1')
 ```
 
 ## Load data for feature selection
