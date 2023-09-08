@@ -60,8 +60,6 @@ Use the 'Gene_mat_generate' function to generate and save teh neighboring expres
 ```{r}
 Gene_mat_generate(seuInt, markers, k=20,
                   save.path = save_path, name = "neighbor_gene_NICHES_k20_shared")
-Gene_mat_generate(seuInt_imput, markers, k=20,
-                  save.path = save_path, name = "neighbor_gene_imput_NICHES_k20_shared")
 ```
 
 ## Generate neighboring cell proportion matrix
